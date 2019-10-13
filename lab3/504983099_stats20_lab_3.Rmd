@@ -1,0 +1,166 @@
+---
+title: "Yining Wang lab3"
+output: html_document
+---
+
+Yining Wang
+504983099
+Lab 3
+
+# 1
+
+this is the original function:
+function (x, na.rm = FALSE) 
+sqrt(var(if (is.vector(x) || is.factor(x)) x else as.double(x), 
+    na.rm = na.rm))
+<bytecode: 0x7ffee4dc7d50>
+<environment: namespace:stats>
+
+this is my function
+```{r}
+mysd1 <- function(x, na.rm=FALSE ){
+  
+  if(is.vector(x)||is.factpr(x))
+    sqrt(var(x))
+  else
+    sqrt(var(as.double(x),na.rm=na.rm))
+}
+```
+
+lets try it out
+
+```{r}
+sd(rivers)
+mysd1(rivers)
+```
+and it works the same as the old sd function
+
+# 2
+```{r}
+mysd2 <- function(x, na.rm=FALSE ){
+  
+  if(is.vector(x)||is.factor(x))
+    sqrt(var(x))
+  else if(is.data.frame(x))
+    apply(x,2,mysd1)
+  else
+    sqrt(var(as.double(x),na.rm=na.rm))
+}
+```
+
+let's try them out
+
+```{r}
+mysd2(USArrests)
+mysd2(rivers)
+```
+it works as expected
+
+# 3
+## a
+```{r}
+pythag<-function(x,y){
+  sqrt(x^2+y^2)
+}
+```
+let's try it out
+
+```{r}
+pythag(4,5)
+pythag(4:10,2:8)
+
+```
+## b
+```{r}
+pythag<-function(x,y){
+  if(x<0 || y<0)
+    stop("values need to be positive")
+  else if ((!is.numeric(x))||(!is.numeric(y)))
+    stop("I need numeric values to make this work")
+  else
+  list(hypoteneuse=sqrt(x^2+y^2), sidea=x,sideb=y)
+}
+```
+lets try it out
+```{r}
+pythag(4,5)
+```
+
+
+```{r,error=TRUE}
+pythag("A","B")
+```
+
+
+```{r,error=TRUE}
+pythag(-4,-5)
+```
+
+
+```{r}
+pythag(4:10,2:8)
+```
+
+# 4
+## 1.2. 
+
+```{r}
+library(dplyr)
+baseball<-plyr::baseball
+sapply(baseball,class)
+```
+## 3.
+```{r}
+temp<-baseball[,c(1,2,6:12)]
+#apply(temp,1,temp %>% group_by(year) %>% summarize(max(g),max(ab)))
+maxs<-temp %>% group_by(year) %>% summarize(max(g),max(ab),max(r),max(h),max(X2b),max(X3b),max(hr))
+temp2<-inner_join(maxs,temp,by="year")
+temp2
+```
+
+```{r}
+
+for (i in 1:21699){
+  for (j in 2:8){
+    temp2[i,j+8]<-temp2[i,j+8]/temp2[i,j]
+  }
+}
+  
+  
+```
+
+```{r}
+#temp2
+baseball2<-temp2[,c(9,1,10:16)]
+baseball2
+```
+
+let's see if its right
+```{r}
+head(baseball2, n=7)
+```
+
+
+```{r}
+str(baseball2)
+```
+
+and its correct
+
+# 5
+## a
+```{r}
+someURL<- 'http://www.stat.ucla.edu/~vlew/datasets/spssSTUFF.zip'
+download.file(someURL,"ucpay.zip")
+unzip("ucpay.zip", exdir = "ucpaydata")
+list.files("ucpaydata")
+```
+
+## b
+```{r}
+result<-lapply(list.files(pattern="death.*csv"),read.csv)
+```
+
+
+
+

@@ -1,0 +1,310 @@
+---
+title: "Yining Wang final project"
+output:
+  html_document: default
+  pdf_document: default
+---
+Yining Wang
+504983099
+Stats 20 Final Project
+
+Load the libraries first
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidytext)
+library(textdata)
+```
+
+lets load in the data first 
+```{r}
+load("C:/stats 20/final lab/AmazonFinal6.RData")
+#load("C:/stats 20/final lab/AmazonFinal6S.RData")
+```
+mege them
+```{r}
+#Amazon6AS<-inner_join(Amazon6AS,Amazon6BS,by="review_id")
+rdata<-inner_join(Amazon6A,Amazon6B,by="review_id")
+```
+
+first lets take a look at the data and see if we need to clean it
+
+```{r}
+summary(rdata)
+```
+
+From what we see,the star_rating are all within the reasonable 1-5 range.
+Some observations don't have a valid date (NAs) so we will filter those out.
+
+```{r}
+rdata2=rdata%>%filter(!is.na(review_date))
+
+```
+
+Now let's filter out those review with 0 or 1 word since there are not likely to offer useful information and are often gibberish
+
+```{r}
+rdata3=rdata2%>%filter(nchar(review_body)>1)
+
+```
+
+Now we can start looking at the questions
+
+## 1
+### (a)
+
+First we group them by title and summarize the mean of the rate and the number count, and then we filter out those books wiht at least 50 reviews
+```{r}
+temp1<-rdata3%>%group_by(product_title)%>%summarise(rate=mean(star_rating),count=n())
+temp2<-temp1%>%filter(count>=50)
+```
+lets show temp2
+```{r}
+temp2 
+```
+The result looks legit
+No lets get the top two books and the bottom two books
+toptwo:
+```{r}
+temp2%>%arrange(desc(rate))%>%head(2)
+```
+
+bottome two:
+```{r}
+temp2%>%arrange(desc(rate))%>%tail(2)
+```
+
+### (b) 
+
+##### The two top positve ones:
+
+###### Goodnight, Goodnight Construction Site：
+
+
+we try to analyze the reviews by making a dot plot of all the words in the revews between its sentimental value and its contribution
+
+```{r}
+ggcs<-rdata3%>%filter(product_title == "Goodnight, Goodnight Construction Site")
+ggcsdata<-ggcs %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(ggcsdata, aes(y = contribution, x = value,colors=)) + geom_point() +
+  labs(title="Relationship between sentimental value and contribution for\n 'Goodnight, Goodnight Construction Site'", x="sentimental value")+theme_classic()
+```
+As expected, most of the words are positive. 
+Let's see if someone is manipulating the reviews by examing the reviews from the not verified purchases:
+```{r}
+ggcsv<-ggcs%>%filter(verified_purchase=="N")
+ggcsvdata<-ggcsv %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(ggcsvdata, aes(y = contribution, x = value)) + geom_point()+
+  labs(title="Relationship between sentimental value and contribution for\n 'Goodnight, Goodnight Construction Site', \nnot verified purchase only", x="sentimental value")+theme_classic()
+```
+
+Generally there are not a lot of unverifed comment so I would say there is no comment manipulation
+
+
+###### Go Pro: 7 Steps to Becoming a Network Marketing Professional:
+
+```{r}
+gp7s<-rdata3%>%filter(product_title == "Go Pro: 7 Steps to Becoming a Network Marketing Professional")
+gp7sdata<-gp7s %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(gp7sdata, aes(y = contribution, x = value)) + geom_point()+ labs(title="Relationship between sentimental value and contribution for\n 'Go Pro: 7 Steps to Becoming a Network Marketing Professional'", x="sentimental value")+theme_classic()
+```
+
+Again, no surprise most of the words are positive
+Let's see if someone is manipulating reviews by examing the cooments from the  not verified purchases:
+
+```{r}
+gp7sv<-gp7s%>%filter(verified_purchase=="N")
+gp7svdata<-gp7sv %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(gp7svdata, aes(y = contribution, x = value)) + geom_point()+ labs(title="Relationship between sentimental value and contribution for\n 'Go Pro: 7 Steps to Becoming a Network Marketing Professional'\n not verified purchase only", x="sentimental value")+theme_classic()
+```
+doesn't look like there is manipulation either 
+
+
+##### The two top negative ones:
+
+###### To Train Up a Child:
+```{r}
+ttuc<-rdata3%>%filter(product_title == "To Train Up a Child")
+ttucdata<-ttuc %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(ttucdata, aes(y = contribution, x = value)) + geom_point()+ labs(title="Relationship between sentimental value and contribution for\n 'To Train Up a Child'", x="sentimental value")+theme_classic()
+
+```
+
+About half of the words are positive and half are negative, guess not everyone hates it No let's find of if there is manipulation
+```{r}
+ttucv<-ttuc%>%filter(verified_purchase=="N")
+ttucvdata<-ttucv %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(ttucvdata, aes(y = contribution, x = value)) + geom_point()+labs(title="Relationship between sentimental value and contribution for\n 'To Train Up a Child' \n not verified purchase only", x="sentimental value")+theme_classic()
+
+```
+
+This is intresting. We can see it looks similar to the one with all the purchases, so that most of the words are actually from unverified comments. Now lets take a look at the verifed purchase reviews 
+```{r}
+ttucv<-ttuc%>%filter(verified_purchase=="Y")
+ttucvdata<-ttucv %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(ttucvdata, aes(y = contribution, x = value)) + geom_point() + labs(title="Relationship between sentimental value and contribution for\n 'To Train Up a Child' \n verified purchase only", x="sentimental value")+theme_classic()
+
+```
+However, the distribution of those verified purchases look similar to that of the unverified ones, so we are not really sure if there is a bot activity or manipulting of comments here 
+
+
+###### It Could Happen To Anyone: Why Battered Women Stay
+```{r}
+icht<-rdata3%>%filter(product_title == "It Could Happen To Anyone: Why Battered Women Stay")
+
+ichtdata<-icht %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(ichtdata, aes(y = contribution, x = value)) + geom_point()+labs(title="Relationship between sentimental value and contribution for\n 'It Could Happen To Anyone: Why Battered Women Stay'", x="sentimental value")+theme_classic()
+```
+
+Let's try to find if there is manipulation
+
+```{r}
+ichtv<-icht%>%filter(verified_purchase=="Y")
+ichtvdata<-ichtv %>%
+    unnest_tokens(word, review_body) %>%
+    count(word, sort = TRUE) %>%
+    ungroup() %>%
+    inner_join(get_sentiments("afinn"), by = "word") %>%
+    group_by(word) %>%
+    mutate(contribution = value*n) %>%
+    arrange(desc(abs(contribution)))
+
+ggplot(ichtvdata, aes(y = contribution, x = value)) + geom_point()+geom_point()+labs(title="Relationship between sentimental value and contribution for\n 'It Could Happen To Anyone: Why Battered Women Stay'\n verified purchase only", x="sentimental value")+theme_classic()
+```
+
+Now this is very intresting because all the reviews for this book are not verified! 
+
+```{r}
+rdata3%>%filter(verified_purchase=="Y")%>%count()
+```
+
+
+```{r}
+rdata3%>%filter(verified_purchase=="N")%>%count()
+```
+
+we see that the majority of the review are actually verified so having all of the review unverified is actually weird
+Thus, this book probably has its reviews manipulated by its competitors
+
+## 2
+let's examine the relationship between average sentiment value for all the words and the star rate for all the comments
+
+Let's calculate the average sentiment value for all the reviews first
+```{r}
+comment_sentiments<-
+rdata3 %>%
+    unnest_tokens(word, review_body) %>%
+    inner_join(get_sentiments("afinn"), by ="word") %>% group_by(review_id)%>%summarise(mean_sentiment=mean(value))%>%  arrange(desc(abs(mean_sentiment)))
+
+```
+
+```{r}
+summary(comment_sentiments)
+```
+
+
+```{r}
+everythingforcomment<-inner_join(comment_sentiments,rdata3, by="review_id")
+everythingforcomment
+```
+
+We want to tell the difference between vine memberes and non vine memberes 
+
+```{r}
+ggplot(everythingforcomment,mapping=aes(y=mean_sentiment,x=factor(star_rating), colour=vine))+geom_boxplot()+labs(title="Relationship between star rating and the average sentiment value of \n all its words for vine member reviews and non vine member reviews",x="Star Rating", y="Average Sentiments")+theme_classic()
+```
+
+As expected, the higher the star rating of a review is, the higher the average sentiment of its words are. 
+We can see that vine members tend to use more moderate language in their review when the star rating is the same, in that their reviews have higher sentiment value when star rating is below 3 and lower sentiment when the star rating is and over 3  
+
+Now we want to tell the difference verified purchases and not verified purchases
+
+```{r}
+ggplot(everythingforcomment,mapping=aes(y=mean_sentiment,x=factor(star_rating), colour=verified_purchase))+geom_boxplot()+ labs(title="Relationship between star rating and the average sentiment value of \n all its words for verified purchases and unverified purchases",x="Star Rating", y="Average Sentiments")+theme_classic()
+```
+
+Again, as expected, the higher the star rating of a review is, the higher the average sentiment of its words are. 
+It looks like generally reviews from verified purchase are more positive when the star rating is the same.
+
+## 3
+
+My hypothesis is that those reviewers who write more reviews are gonna give a higher average star rating, for they probably have the habit of wrting reviews while others who write less reviews may only write review because they had a bad shopping experience
+
+pseudocode:
+I am gonna group the data by costumer id and make a dot plot of the number of a costumer's review and the average star rating he or she gives, and then try to make a line to fit it  
+
+```{r}
+customer_data<-
+everythingforcomment%>% group_by(customer_id.x)%>%summarise(average_star=mean(star_rating), number_of_review=n())
+customer_data
+```
+```{r}
+ggplot(customer_data,mapping=aes(x=number_of_review,y=average_star))+geom_jitter()+labs(title="Relationship between average star rating and number of review\n written for customers")+theme_classic()+geom_smooth()
+```
+
+
+Well it turns out my hypothesis is wrong. Actually when the customer wrote small number of reviews those revies tend to me more positive. Its probably because people like to write comments not only when they dislike a book, but also when they like the book. It could also be because sellers are using bot accounts to post positive reviews to boost the average star rating of the product
